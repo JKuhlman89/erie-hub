@@ -263,10 +263,13 @@ function openModal(date){
         ${e.details||""}<br>
     `;
 
-    if(e.link){
-      html+=`<a href="${e.link}" targetauth.currentUser && e.id){
-      html+=`<br><button onclick="deleteEvent('${e.id}')">Delete</button>`;
-    }
+   if(e.link){
+  html += `<a href="${e.link}" target="_blank">More Info</a>`;
+}
+
+if(auth.currentUser && e.id){
+  html += `<br><button onclick="deleteEvent('${e.id}')">Delete</button>`;
+}
 
     html+=`</div>`;
   });
