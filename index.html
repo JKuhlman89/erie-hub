@@ -445,7 +445,7 @@ function openFlyer(url, id){
   modal.style.display = "block";
   modalDate.innerText = "Flyer";
 
-  // ✅ create wrapper manually
+  // create wrapper manually
   const wrapper = document.createElement("div");
   wrapper.style.textAlign = "center";
 
@@ -458,7 +458,7 @@ function openFlyer(url, id){
 
   wrapper.appendChild(img);
 
-  // ✅ ADMIN BUTTON (GUARANTEED TO ATTACH)
+ 
   if(auth.currentUser && id){
     const btn = document.createElement("button");
     btn.innerText = "Delete Flyer";
@@ -477,10 +477,10 @@ function openFlyer(url, id){
       }
     };
 
-    wrapper.appendChild(btn);  // ✅ ALWAYS WORKS
+    wrapper.appendChild(btn);  
   }
 
-  // ✅ clear and insert
+ 
   modalContent.innerHTML = "";
   modalContent.appendChild(wrapper);
 }
