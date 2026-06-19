@@ -377,7 +377,7 @@ function loadEvents(){
 
   const img=document.createElement("img");
   img.src=e.flyer;
-  img.onclick=()=>openFlyer(e.flyer);
+  img.onclick = () => openFlyer(e.flyer, e.id);
 
   box.appendChild(img);
 
@@ -407,10 +407,19 @@ function loadEvents(){
 }
 
 
-function openFlyer(url){
-  modal.style.display="block";
-  modalDate.innerText="Flyer";
-  modalContent.innerHTML = `<img src="${url}" style="width:100%">`;
+function openFlyer(url, id){
+  modal.style.display = "block";
+  modalDate.innerText = "Flyer";
+
+  modalContent.innerHTML = `
+    <div style="text-align:center;">
+      <img src="${url}" style="max-width:90vw; max-height:80vh;">
+      ${auth.currentUser && id ? `
+        <br><br>
+        <button onclick="deleteEvent('${id}')">Delete Flyer</button>
+      ` : ""}
+    </div>
+  `;
 }
 
 loadEvents();
