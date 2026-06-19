@@ -366,15 +366,33 @@ function loadEvents(){
       });
 
       if(e.flyer){
-        const img=document.createElement("img");
-        img.src=e.flyer;
-        img.onclick=()=>openFlyer(e.flyer);
+  const box=document.createElement("div");
+  box.className="flyer";
 
-        const box=document.createElement("div");
-        box.className="flyer";
-        box.appendChild(img);
+  const img=document.createElement("img");
+  img.src=e.flyer;
+  img.onclick=()=>openFlyer(e.flyer);
 
-        flyerContainer.appendChild(box);
+  box.appendChild(img);
+
+  // ✅ ADMIN DELETE BUTTON
+  if(auth.currentUser){
+    const btn = document.createElement("button");
+    btn.innerText = "Delete";
+    btn.style.position = "absolute";
+    btn.style.margin = "5px";
+    btn.onclick = (ev) => {
+      ev.stopPropagation(); // prevent image click
+      if(confirm("Delete this flyer?")){
+        deleteEvent(e.id);
+      }
+    };
+
+    box.style.position = "relative";
+    box.appendChild(btn);
+  }
+
+  flyerContainer.appendChild(box);
       }
     });
 
