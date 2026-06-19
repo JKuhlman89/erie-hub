@@ -283,24 +283,30 @@ function closeModal(){
 
 // SUBMIT EVENT
 function submitEvent(){
-  if(!name.value || !date.value){
+
+  const nameInput = document.getElementById("name");
+  const dateInput = document.getElementById("date");
+
+  if(!nameInput.value || !dateInput.value){
     alert("Name + date required");
     return;
   }
 
   db.collection("pending").add({
-    name:name.value,
-    date:date.value,
-    time:time.value,
-    location:location.value,
-    host:host.value,
-    fee:fee.value,
-    details:details.value,
-    link:link.value,
-    flyer:flyer.value,
-    created:new Date()
-  }).then(()=>alert("Submitted"));
+    name: nameInput.value,
+    date: dateInput.value,
+    time: document.getElementById("time").value || "",
+    location: document.getElementById("location").value || "",
+    host: document.getElementById("host").value || "",
+    fee: document.getElementById("fee").value || "",
+    details: document.getElementById("details").value || "",
+    link: document.getElementById("link").value || "",
+    flyer: document.getElementById("flyer").value || "",
+    created: new Date()
+  })
+  .then(()=>alert("Submitted"));
 }
+
 
 // SUBMIT FLYER ONLY
 function submitFlyer(){
