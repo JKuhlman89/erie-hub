@@ -355,7 +355,10 @@ function loadPending(){
     pendingList.innerHTML="";
 
     s.forEach(doc=>{
-      const e=doc.data();
+      const e = {
+        id: doc.id,
+        ...doc.data()
+      };
 
       pendingList.innerHTML+=`
         <div class="card">
@@ -394,10 +397,7 @@ function loadEvents(){
     s.forEach(doc=>{
       const e=doc.data();
 
-      events.push({
-        id:doc.id,
-        ...e
-      });
+     events.push(e);
 
       if(e.flyer){
   const box=document.createElement("div");
