@@ -88,8 +88,9 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let events = [];
+let isAdmin = false;
 
-// ✅ LOGIN
+// LOGIN
 function login(){
   auth.signInWithEmailAndPassword(username.value,password.value)
     .catch(e=>alert(e.message));
@@ -99,14 +100,23 @@ function logout(){
   auth.signOut();
 }
 
-// ✅ AUTH STATE
+// AUTH STATE
 auth.onAuthStateChanged(user=>{
-  admin.style.display = user ? "block" : "none";
-  loginSection.style.display = user ? "none" : "block";
-  loadEvents(); // 🔑 re-render with correct auth state
-});
+  isAdmin = !!user;
+  if(user){
+    admin.style.display = "block";
+    loginSection.style.display = "none";
+    loadPending();
+  } else {
+    admin.style.display = "none";
+    loginSection.style.display = "block";
+  }
 
-// ✅ CALENDAR (basic)
+  loadEvents();
+});
+``
+
+// CALENDAR
 function renderCalendar(){
   calendarDays.innerHTML="";
   for(let i=1;i<=30;i++){
@@ -116,46 +126,51 @@ function renderCalendar(){
   }
 }
 
-// ✅ DELETE EVENT
+// DELETE EVENT
 function deleteEvent(id){
   db.collection("events").doc(id).delete();
 }
 
-// ✅ MODAL (THIS IS THE IMPORTANT PART)
+// MODAL
 function openFlyer(url, id){
-  modal.style.display="block";
+  modal.style.display = "block";
+  modalDate.innerText = "Flyer";
 
   modalContent.innerHTML = `
     <div style="text-align:center;">
-      <img src="${url}" style="max-width:100%;max-height>
+      <img src="${url}" style="max-width:100%; max-height:80vh; display:block; margin:auto;">
+      <div id="deleteContainer" style="margin-top:15px;"></div>
+    </div>
   `;
 
-  // ✅ BUTTON CREATED AFTER RENDER (RELIABLE)
-  if(auth.currentUser){
+  // ✅ USE STABLE ADMIN FLAG
+  if(isAdmin){
     const btn = document.createElement("button");
-    btn.innerText = "Delete";
-    btn.style.background="red";
-    btn.style.color="white";
-    btn.style.padding="10px";
-    btn.style.marginTop="10px";
+    btn.innerText = "Delete Flyer";
 
-    btn.onclick = ()=>{
+    btn.style.background = "red";
+    btn.style.color = "white";
+    btn.style.padding = "10px";
+    btn.style.border = "none";
+    btn.style.cursor = "pointer";
+
+    btn.onclick = () => {
       if(confirm("Delete this flyer?")){
         deleteEvent(id);
         closeModal();
       }
     };
 
-    document.getElementById("deleteZone").appendChild(btn);
+    document.getElementById("deleteContainer").appendChild(btn);
   }
 }
 
-// ✅ CLOSE MODAL
+// CLOSE MODAL
 function closeModal(){
   modal.style.display="none";
 }
 
-// ✅ LOAD EVENTS (FIXED ID HANDLING)
+// LOAD EVENTS
 function loadEvents(){
   db.collection("events").onSnapshot(snapshot=>{
     events=[];
@@ -176,7 +191,7 @@ function loadEvents(){
         const img=document.createElement("img");
         img.src=e.flyer;
 
-        // ✅ CRITICAL: PASS REAL ID
+        // PASS REAL ID
         img.onclick=()=>openFlyer(e.flyer, e.id);
 
         box.appendChild(img);
