@@ -340,29 +340,47 @@ function deleteEvent(id){
 
 // FLYERS
 function openFlyer(url){
-  modal.style.display="block";
-  modalDate.innerText="Flyer";
-  modalContent.innerHTML = `<img src="${url}" style="width:on loadEvents(){
-  db.collection("events").onSnapshot(s=>{
-    events=[];
-    flyerContainer.innerHTML="";
+  modal.style.display = "block";
+  modalDate.innerText = "Flyer";
 
-    s.forEach(doc=>{
-      const e = doc.data();
+  modalContent.innerHTML = `
+    <img src="${url}" style="width:100%">
+  `;
+}
+
+function loadEvents(){
+  db.collection("events").onSnapshot(snapshot => {
+
+    events = [];
+    flyerContainer.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
 
       events.push({
         id: doc.id,
-        ...e
+        ...data
       });
 
-      if(e.flyer){
-        flyerContainer.innerHTML+=`
-          <div class="flyer" onclick="openFlyer('${e.flyer}')">
-            <img src="$          </div>
-        `;
+      // flyer rendering
+      if (data.flyer) {
+        const flyerDiv = document.createElement("div");
+        flyerDiv.className = "flyer";
+
+        const img = document.createElement("img");
+        img.src = data.flyer;
+
+        img.onclick = () => openFlyer(data.flyer);
+
+        flyerDiv.appendChild(img);
+        flyerContainer.appendChild(flyerDiv);
       }
     });
 
+    renderCalendar();
+
+  });
+}
     renderCalendar();
   });
 }
