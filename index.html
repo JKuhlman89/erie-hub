@@ -382,13 +382,15 @@ function loadEvents(){
   });
 }
 
+
 function openFlyer(url){
   modal.style.display="block";
   modalDate.innerText="Flyer";
-  modalContent.innerHTML=`<img src="${url}" T
+  modalContent.innerHTML = `<img src="${url}" style="width:100%">`;
+}
+
 loadEvents();
 renderCalendar();
-
 </script>
 
 </body>
