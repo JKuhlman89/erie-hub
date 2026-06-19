@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erie Events Hub</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f7fbff; }
+
+header {
+  background:#0b5ed7;
+  color:white;
+  padding:20px;
+  text-align:center;
+}
+
+section { max-width:900px; margin:auto; padding:20px; }
+
+.calendar-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+button { padding:5px 10px; cursor:pointer; }
+
+.weekdays, .days {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+}
+
+.weekdays { background:#e9f2ff; font-weight:bold; text-align:center; }
+
+.days div {
+  border:1px solid #eee;
+  min-height:80px;
+  padding:5px;
+  font-size:12px;
+}
+
+.event-day { background:#cfe2ff; }
+
+#modal {
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,.5);
+}
+
+.modal-box {
+  background:white;
+  margin:10% auto;
+  padding:20px;
+  width:300px;
+}
+
+.card { border:1px solid #ddd; margin:5px 0; padding:5px; }
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Erie Events Hub</h1>
+</header>
+
+<section>
+<h2>Calendar</h2>
+
+<div class="calendar-header">
+  <button onclick="prevMonth()">←</button>
+  <h3 id="monthLabel"></h3>
+  <button onclick="nextMonth()">→</button>
+</div>
+
+<div class="weekdays">
+  <div>Sun</div><div>Mon</div><div>Tue</div>
+  <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+</div>
+
+<div class="days" id="calendarDays"></div>
+</section>
+
+<section>
+<h2>Submit Event</h2>
+<input id="title" placeholder="Title"><br><br>
+<input id="date" type="date"><br><br>
+<input id="location" placeholder="Location"><br><br>
+<textarea id="description"></textarea><br><br>
+<button onclick="submitEvent()">Submit</button>
+</section>
+
+<!-- LOGIN -->
+<section id="loginSection">
+<h2>Admin Login</h2>
+<input id="username" placeholder="Email"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
+<button onclick="login()">Login</button>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" style="display:none;">
+<h2>Pending Approvals</h2>
+<div id="pendingList"></div>
+</section>
+
+<!-- MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <h3 id="modalDate"></h3>
+    <div id="modalContent"></div>
+    <button onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyAYsp0-0MJRuiupR4LQuuQLZkHNzHVIGE4",
+  authDomain: "erie-hub.firebaseapp.com",
+  projectId: "erie-hub"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ===== AUTH =====
+function login() {
+  auth.signInWithEmailAndPassword(username.value, password.value)
+    .then(() => alert("Logged in!"))
+    .catch(err => alert(err.message));
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    admin.style.display = "block";
+    loginSection.style.display = "none";
+    loadPending();
+  } else {
+    admin.style.display = "none";
+    loginSection.style.display = "block";
+  }
+});
+
+// ===== CALENDAR =====
+let current = new Date();
+let events = [];
+
+function prevMonth(){
+  current.setMonth(current.getMonth() - 1);
+  renderCalendar();
+}
+
+function nextMonth(){
+  current.setMonth(current.getMonth() + 1);
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const year = current.getFullYear();
+  const month = current.getMonth();
+
+  monthLabel.innerText = current.toLocaleString("default",{month:"long", year:"numeric"});
+  calendarDays.innerHTML = "";
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    calendarDays.appendChild(document.createElement("div"));
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+    const div = document.createElement("div");
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    const dayEvents = events.filter(e => e.date === dateStr);
+
+    div.innerHTML = `<b>${d}</b>`;
+
+    if(dayEvents.length){
+      div.classList.add("event-day");
+
+      dayEvents.forEach(e=>{
+        const el = document.createElement("div");
+        el.style.fontSize="10px";
+        el.textContent = e.title;
+        div.appendChild(el);
+      });
+    }
+
+    div.onclick = () => openModal(dateStr);
+    calendarDays.appendChild(div);
+  }
+}
+
+// ===== MODAL =====
+function openModal(date){
+  modal.style.display="block";
+  modalDate.innerText = date;
+
+  const dayEvents = events.filter(e => e.date === date);
+
+  modalContent.innerHTML = dayEvents.length
+    ? dayEvents.map(e=>`<div class="card"><b>${e.title}</b><br>${e.location}</div>`).join("")
+    : "No events";
+}
+
+function closeModal(){
+  modal.style.display="none";
+}
+
+// ===== SUBMIT =====
+function submitEvent() {
+  db.collection("pending").add({
+    title: title.value,
+    date: date.value,
+    location: location.value,
+    description: description.value,
+    created: new Date()
+  });
+
+  alert("Submitted for approval!");
+}
+
+// ===== LOAD PENDING =====
+function loadPending() {
+  db.collection("pending").onSnapshot(snapshot => {
+    pendingList.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const e = doc.data();
+
+      pendingList.innerHTML += `
+        <div class="card">
+          <b>${e.title}</b><br>
+          Date: ${e.date}<br>
+          Location: ${e.location}<br>
+          Description: ${e.description}<br>
+          <button onclick="approve('${doc.id}')">Approve</button>
+        </div>
+      `;
+    });
+  });
+}
+
+// ===== APPROVE =====
+function approve(id) {
+  const ref = db.collection("pending").doc(id);
+
+  ref.get().then(doc => {
+    const data = doc.data();
+
+    db.collection("events").add(data).then(() => {
+      ref.delete();
+    });
+  });
+}
+
+// ===== LOAD EVENTS =====
+function loadEvents() {
+  db.collection("events").onSnapshot(snapshot => {
+    events = [];
+
+    snapshot.forEach(doc => {
+      events.push(doc.data());
+    });
+
+    renderCalendar();
+  });
+}
+
+// INIT
+loadEvents();
+
+</script>
+
+</body>
+</html>
