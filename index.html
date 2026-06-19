@@ -223,15 +223,34 @@ function closeModal(){
 
 // ===== SUBMIT =====
 function submitEvent() {
+  console.log("Submit clicked");
+
+  if (!title.value || !date.value) {
+    alert("Please fill in at least Title and Date");
+    return;
+  }
+
   db.collection("pending").add({
     title: title.value,
     date: date.value,
     location: location.value,
     description: description.value,
     created: new Date()
-  });
+  })
+  .then(() => {
+    console.log("SUCCESS");
+    alert("Submitted for approval!");
 
-  alert("Submitted for approval!");
+    // CLEAR FORM
+    title.value = "";
+    date.value = "";
+    location.value = "";
+    description.value = "";
+  })
+  .catch((error) => {
+    console.error("ERROR:", error);
+    alert("Submission failed — check console");
+  });
 }
 
 // ===== LOAD PENDING =====
