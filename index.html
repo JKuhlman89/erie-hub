@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Erie, PA Community Calendar</title>
+<title>Erie Events Hub</title>
 
 <style>
 body { font-family: Arial; margin:0; background:#f7fbff; }
@@ -11,11 +11,14 @@ header { background:#0b5ed7; color:white; padding:20px; text-align:center; }
 section { max-width:900px; margin:auto; padding:20px; }
 
 .calendar-header {
-  display:flex; justify-content:space-between; align-items:center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.weekdays, .days {
-  display:grid; grid-template-columns:repeat(7,1fr);
+.weekdays,.days {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
 }
 
 .weekdays { background:#e9f2ff; font-weight:bold; text-align:center; }
@@ -29,30 +32,51 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 .event-day { background:#cfe2ff; }
 
+.flyer-container {
+  display:flex;
+  overflow-x:auto;
+  gap:10px;
+}
+
+.flyer {
+  min-width:200px;
+  height:250px;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.flyer img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
 #modal {
-  display:none; position:fixed; top:0; left:0;
+  display:none;
+  position:fixed;
+  top:0; left:0;
   width:100%; height:100%;
   background:rgba(0,0,0,.5);
 }
 
 .modal-box {
-  background:white; margin:10% auto;
-  padding:20px; width:300px;
+  background:white;
+  margin:10% auto;
+  padding:20px;
+  width:300px;
 }
 
-.card { border:1px solid #ddd; margin:5px 0; padding:5px; }
+.card { border:1px solid #ddd; padding:5px; margin:5px 0; }
+
 </style>
 </head>
 
 <body>
 
-<header>
-<h1>Erie Events Hub</h1>
-</header>
+<header><h1>Erie Events Hub</h1></header>
 
 <section>
 <h2>Calendar</h2>
-
 <div class="calendar-header">
 <button onclick="prevMonth()">←</button>
 <h3 id="monthLabel"></h3>
@@ -64,9 +88,16 @@ section { max-width:900px; margin:auto; padding:20px; }
 <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
 </div>
 
-<div class="days" id="calendarDays"></div>
+<div id="calendarDays" class="days"></div>
 </section>
 
+<!-- FLYERS -->
+<section>
+<h2>Event Flyers</h2>
+<div id="flyerContainer" class="flyer-container"></div>
+</section>
+
+<!-- SUBMIT -->
 <section>
 <h2>Submit Event</h2>
 
@@ -76,24 +107,31 @@ section { max-width:900px; margin:auto; padding:20px; }
 <input id="location" placeholder="Location"><br><br>
 <input id="host" placeholder="Host Name"><br><br>
 <input id="fee" placeholder="Entrance / Cover Fee"><br><br>
+
 <textarea id="details" placeholder="Event Details"></textarea><br><br>
-<input id="link" placeholder="Link to Event (Facebook, website, etc.)"><br><br>
+
+<input id="link" placeholder="Link to Event"><br><br>
+
+<input id="flyer" type="file" accept="image/*"><br><br>
 
 <button onclick="submitEvent()">Submit</button>
 </section>
 
+<!-- LOGIN -->
 <section id="loginSection">
 <h2>Admin Login</h2>
 <input id="username" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+<input id="password" type="password"><br><br>
 <button onclick="login()">Login</button>
 </section>
 
+<!-- ADMIN -->
 <section id="admin" style="display:none;">
 <h2>Pending Approvals</h2>
 <div id="pendingList"></div>
 </section>
 
+<!-- MODAL -->
 <div id="modal">
 <div class="modal-box">
 <h3 id="modalDate"></h3>
@@ -105,25 +143,29 @@ section { max-width:900px; margin:auto; padding:20px; }
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.jsscript>
 
 <script>
 
 // FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "YOUR_KEY",
   authDomain: "erie-hub.firebaseapp.com",
-  projectId: "erie-hub"
+  projectId: "erie-hub",
+  storageBucket: "erie-hub.appspot.com"
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 // LOGIN
 function login(){
-  auth.signInWithEmailAndPassword(username.value, password.value)
-    .then(() => alert("Logged in!"))
-    .catch(err => alert(err.message));
+  auth.signInWithEmailAndPassword(username.value,password.value)
+    .then(()=>loadPending())
+    .catch(err=>alert(err.message));
 }
 
 auth.onAuthStateChanged(user=>{
@@ -131,55 +173,44 @@ auth.onAuthStateChanged(user=>{
     admin.style.display="block";
     loginSection.style.display="none";
     loadPending();
-  } else {
-    admin.style.display="none";
   }
 });
 
 // CALENDAR
-let current = new Date();
-let events = [];
+let current=new Date();
+let events=[];
 
-function prevMonth(){
-  current.setMonth(current.getMonth()-1);
-  renderCalendar();
-}
-
-function nextMonth(){
-  current.setMonth(current.getMonth()+1);
-  renderCalendar();
-}
+function prevMonth(){ current.setMonth(current.getMonth()-1); renderCalendar();}
+function nextMonth(){ current.setMonth(current.getMonth()+1); renderCalendar();}
 
 function renderCalendar(){
-  const year = current.getFullYear();
-  const month = current.getMonth();
-  monthLabel.innerText = current.toLocaleString("default",{month:"long",year:"numeric"});
+  const year=current.getFullYear();
+  const month=current.getMonth();
+
+  monthLabel.innerText=current.toLocaleString("default",{month:"long",year:"numeric"});
   calendarDays.innerHTML="";
 
-  const firstDay = new Date(year,month,1).getDay();
-  const daysInMonth = new Date(year,month+1,0).getDate();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
 
-  for(let i=0;i<firstDay;i++) calendarDays.appendChild(document.createElement("div"));
+  for(let i=0;i<firstDay;i++)calendarDays.appendChild(document.createElement("div"));
 
   for(let d=1; d<=daysInMonth; d++){
-    const div = document.createElement("div");
-    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const div=document.createElement("div");
+    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    const dayEvents = events.filter(e=>e.date===dateStr);
+    const dayEvents=events.filter(e=>e.date===dateStr);
 
-    div.innerHTML = `<b>${d}</b>`;
+    div.innerHTML=`<b>${d}</b>`;
 
     if(dayEvents.length){
       div.classList.add("event-day");
       dayEvents.forEach(e=>{
-        const el = document.createElement("div");
-        el.style.fontSize="10px";
-        el.textContent = e.name;
-        div.appendChild(el);
+        div.innerHTML += `<div style="font-size:10px">${e.name}</div>`;
       });
     }
 
-    div.onclick = ()=>openModal(dateStr);
+    div.onclick=()=>openModal(dateStr);
     calendarDays.appendChild(div);
   }
 }
@@ -187,73 +218,64 @@ function renderCalendar(){
 // MODAL
 function openModal(date){
   modal.style.display="block";
-  modalDate.innerText = date;
+  modalDate.innerText=date;
 
-  const dayEvents = events.filter(e=>e.date===date);
+  const dayEvents=events.filter(e=>e.date===date);
 
-  modalContent.innerHTML = dayEvents.length
-    ? dayEvents.map(e=>`
-      <div class="card">
-        <b>${e.name}</b><br>
-        ${e.date} ${e.time || ""}<br><br>
-        <b>Location:</b> ${e.location || "N/A"}<br>
-        <b>Host:</b> ${e.host || "N/A"}<br>
-        <b>Fee:</b> ${e.fee || "Free"}<br><br>
-        ${e.details || ""}
-        ${e.link ? `<br><a href="${e.linko</a>` : ""}
-      </div>
-    `).join("")
-    : "No events";
+  modalContent.innerHTML=dayEvents.length
+   ? dayEvents.map(e=>`
+     <div class="card">
+      <b>${e.name}</b><br>
+      ${e.time||""}<br>
+      ${e.location||""}<br>
+      ${e.details||""}<br>
+      ${e.link ? `${e.link}More Info</a>`:""}
+     </div>
+   `).join("")
+   : "No events";
 }
 
 function closeModal(){ modal.style.display="none"; }
 
 // SUBMIT
-function submitEvent(){
-  const name = document.getElementById("name").value;
-  const date = document.getElementById("date").value;
-  const time = document.getElementById("time").value;
-  const location = document.getElementById("location").value;
-  const host = document.getElementById("host").value;
-  const fee = document.getElementById("fee").value;
-  const details = document.getElementById("details").value;
-  const link = document.getElementById("link").value;
+async function submitEvent(){
+  const file=flyer.files[0];
+  let flyerURL="";
 
-  if(!name || !date){
-    alert("Event Name and Date required");
-    return;
+  if(file){
+    const ref=storage.ref("flyers/"+Date.now()+"_"+file.name);
+    await ref.put(file);
+    flyerURL=await ref.getDownloadURL();
   }
 
   db.collection("pending").add({
-    name, date, time, location,
-    host, fee, details, link,
-    created: new Date()
-  }).then(()=>{
-    alert("Submitted!");
-  }).catch(err=>{
-    console.error(err);
-    alert("Error");
-  });
+    name:name.value,
+    date:date.value,
+    time:time.value,
+    location:location.value,
+    host:host.value,
+    fee:fee.value,
+    details:details.value,
+    link:link.value,
+    flyer:flyerURL,
+    created:new Date()
+  }).then(()=>alert("Submitted"))
+  .catch(err=>console.error(err));
 }
 
 // ADMIN
 function loadPending(){
-  db.collection("pending").onSnapshot(snapshot=>{
+  db.collection("pending").onSnapshot(s=>{
     pendingList.innerHTML="";
 
-    snapshot.forEach(doc=>{
-      const e = doc.data();
+    s.forEach(doc=>{
+      const e=doc.data();
 
-      pendingList.innerHTML += `
+      pendingList.innerHTML+=`
         <div class="card">
           <b>${e.name}</b><br>
           ${e.date}<br>
-          ${e.time || ""}<br>
-          ${e.location || ""}<br>
-          ${e.host || ""}<br>
-          Fee: ${e.fee || "Free"}<br>
-          ${e.details || ""}<br>
-          <a href="${e.link || ""}</a><br>
+          ${e.location||""}<br>
           <button onclick="approve('${doc.id}')">Approve</button>
         </div>
       `;
@@ -262,19 +284,33 @@ function loadPending(){
 }
 
 function approve(id){
-  db.collection("pending").doc(id).get().then(doc=>{
-    const data = doc.data();
-    db.collection("events").add(data).then(()=>{
-      db.collection("pending").doc(id).delete();
+  const ref=db.collection("pending").doc(id);
+
+  ref.get().then(doc=>{
+    db.collection("events").add(doc.data()).then(()=>{
+      ref.delete();
     });
   });
 }
 
-// LOAD EVENTS
+// LOAD EVENTS & FLYERS
 function loadEvents(){
-  db.collection("events").onSnapshot(snapshot=>{
+  db.collection("events").onSnapshot(s=>{
     events=[];
-    snapshot.forEach(doc=>events.push(doc.data()));
+    flyerContainer.innerHTML="";
+
+    s.forEach(doc=>{
+      const e=doc.data();
+      events.push(e);
+
+      if(e.flyer){
+        flyerContainer.innerHTML+=`
+          <div class="flyer">
+            ${e.flyer}
+          </div>`;
+      }
+    });
+
     renderCalendar();
   });
 }
@@ -285,3 +321,4 @@ loadEvents();
 
 </body>
 </html>
+`
