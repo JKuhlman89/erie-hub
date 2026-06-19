@@ -439,17 +439,16 @@ function openFlyer(url, id){
   modal.style.display = "block";
   modalDate.innerText = "Flyer";
 
-  const isAdmin = auth.currentUser !== null;
-
-  // build base HTML
+  // Always render actual image
   modalContent.innerHTML = `
-    <div id="flyerWrapper" style="text-align:center;">
-      ${url}
+    <div style="text-align:center;">
+      <img src="${url}" style="max-width:100%; max-height:80vh; display:block; margin:auto;">
+      <div id="deleteContainer" style="margin-top:15px;"></div>
     </div>
   `;
 
-  // if admin, ADD BUTTON PROPERLY
-  if(isAdmin && id){
+  // Now safely attach button AFTER DOM exists
+  if(auth.currentUser && id){
     const btn = document.createElement("button");
     btn.innerText = "Delete Flyer";
 
@@ -458,16 +457,15 @@ function openFlyer(url, id){
     btn.style.padding = "10px";
     btn.style.border = "none";
     btn.style.cursor = "pointer";
-    btn.style.marginTop = "10px";
 
     btn.onclick = () => {
       if(confirm("Delete this flyer?")){
         deleteEvent(id);
-        closeModal(); // optional but recommended
+        closeModal();
       }
     };
 
-    document.getElementById("flyerWrapper").appendChild(btn);
+    document.getElementById("deleteContainer").appendChild(btn);
   }
 }
 
