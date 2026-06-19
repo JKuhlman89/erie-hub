@@ -157,7 +157,7 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 // FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyAYsp0-0MJRuiupR4LQuuQLZkHNzHVIGE4",
+  apiKey: "YOUR_API_KEY",
   authDomain: "erie-hub.firebaseapp.com",
   projectId: "erie-hub"
 };
@@ -243,7 +243,7 @@ function renderCalendar(){
   }
 }
 
-// MODAL
+// MODAL ✅ FIXED
 function openModal(date){
   modal.style.display="block";
   modalDate.innerText = date;
@@ -251,23 +251,22 @@ function openModal(date){
   const dayEvents = events.filter(e=>e.date===date);
 
   modalContent.innerHTML = dayEvents.length
-  ? dayEvents.map(e => `
-    <div class="card">
-      <b>${e.name || "Untitled"}</b><br>
-      ${e.time || ""}<br>
-      ${e.location || ""}<br>
-      ${e.details || ""}<br>
+    ? dayEvents.map(e=>`
+      <div class="card">
+        <b>${e.name || "Untitled"}</b><br>
+        ${e.time||""}<br>
+        ${e.location||""}<br>
+        ${e.details||""}<br>
 
-      ${e.link 
-        ? `${e.link}More Info</a>` 
-        : ""}
+        ${e.link ? `<a hrefk}More Info</a>` : ""}
 
-      ${(auth.currentUser && e.id)
-        ? `<br><button onclick="deleteEvent('${e.id}')">Delete</button>`
-        : ""}
-    </div>
-  `).join("")
-  : "No events";
+        ${(auth.currentUser && e.id)
+          ? `<br><button onclick="deleteEvent('${e.id}')">Delete</button>`
+          : ""}
+      </div>
+    `).join("")
+    : "No events";
+} // ✅ THIS WAS MISSING
 
 function closeModal(){
   modal.style.display="none";
@@ -321,11 +320,9 @@ function loadPending(){
 }
 
 function approve(id){
-  const ref=db.collection("pending").doc(id);
-
-  ref.get().then(doc=>{
+  db.collection("pending").doc(id).get().then(doc=>{
     db.collection("events").add(doc.data()).then(()=>{
-      ref.delete();
+      db.collection("pending").doc(id).delete();
     });
   });
 }
@@ -334,21 +331,15 @@ function deletePending(id){
   db.collection("pending").doc(id).delete();
 }
 
-// DELETE EVENT
 function deleteEvent(id){
   db.collection("events").doc(id).delete();
 }
 
 // FLYERS
 function openFlyer(url){
-  modal.style.display = "block";
-  modalDate.innerText = "Flyer";
-
-  modalContent.innerHTML = `
-    <img src="${url}" style="width:100%">
-  `;
-}
-
+  modal.style.display="block";
+  modalDate.innerText="Flyer";
+  modalContent.innerHTML = `<img src="${url}" style="S ✅ CLEANED
 function loadEvents(){
   db.collection("events").onSnapshot(snapshot => {
 
@@ -363,14 +354,12 @@ function loadEvents(){
         ...data
       });
 
-      // flyer rendering
-      if (data.flyer) {
+      if(data.flyer){
         const flyerDiv = document.createElement("div");
         flyerDiv.className = "flyer";
 
         const img = document.createElement("img");
         img.src = data.flyer;
-
         img.onclick = () => openFlyer(data.flyer);
 
         flyerDiv.appendChild(img);
@@ -379,13 +368,10 @@ function loadEvents(){
     });
 
     renderCalendar();
-
-  });
-}
-    renderCalendar();
   });
 }
 
+// INIT
 loadEvents();
 renderCalendar();
 
