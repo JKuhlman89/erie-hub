@@ -23,12 +23,15 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 .weekdays { background:#e9f2ff; font-weight:bold; text-align:center; }
 
+
 .days div {
   border:1px solid #eee;
-  min-height:80px;
-  padding:5px;
-  font-size:12px;
+  min-height:50px;
+  padding:4px;
+  font-size:11px;
+  overflow:hidden;
 }
+
 
 .event-day { background:#cfe2ff; }
 
@@ -117,6 +120,12 @@ section { max-width:900px; margin:auto; padding:20px; }
 <button onclick="submitEvent()">Submit</button>
 </section>
 
+<section>
+<h2>Submit Flyer</h2>
+<input id="flyerOnly" placeholder="Flyer Image URL"><br><br>
+<button onclick="submitFlyer()">Submit Flyer</button>
+</section>
+
 <!-- LOGIN -->
 <section id="loginSection">
 <h2>Admin Login</h2>
@@ -182,31 +191,17 @@ function prevMonth(){ current.setMonth(current.getMonth()-1); renderCalendar();}
 function nextMonth(){ current.setMonth(current.getMonth()+1); renderCalendar();}
 
 function renderCalendar(){
-  const year=current.getFullYear();
-  const month=current.getMonth();
+  
+const maxShow = 2;
 
-  monthLabel.innerText=current.toLocaleString("default",{month:"long",year:"numeric"});
-  calendarDays.innerHTML="";
+dayEvents.slice(0, maxShow).forEach(e => {
+  div.innerHTML += `<div style="font-size:10px">${e.name}</div>`;
+});
 
-  const firstDay=new Date(year,month,1).getDay();
-  const daysInMonth=new Date(year,month+1,0).getDate();
+if (dayEvents.length > maxShow) {
+  div.innerHTML += `<div style="font-size:10px; color:gray;">+${dayEvents.length - maxShow} more</div>`;
+}
 
-  for(let i=0;i<firstDay;i++)calendarDays.appendChild(document.createElement("div"));
-
-  for(let d=1; d<=daysInMonth; d++){
-    const div=document.createElement("div");
-    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-
-    const dayEvents=events.filter(e=>e.date===dateStr);
-
-    div.innerHTML=`<b>${d}</b>`;
-
-    if(dayEvents.length){
-      div.classList.add("event-day");
-      dayEvents.forEach(e=>{
-        div.innerHTML += `<div style="font-size:10px">${e.name}</div>`;
-      });
-    }
 
     div.onclick=()=>openModal(dateStr);
     calendarDays.appendChild(div);
@@ -285,7 +280,29 @@ function submitEvent(){
   });
 
 }
+//FLYER SUBMIT
+  function submitFlyer(){
+  const flyerInput = document.getElementById("flyerOnly");
 
+  if (!flyerInput.value) {
+    alert("Please enter a flyer image URL");
+    return;
+  }
+
+  db.collection("flyers").add({
+    image: flyerInput.value,
+    created: new Date()
+  })
+  .then(() => {
+    alert("Flyer submitted for approval");
+    flyerInput.value = "";
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error submitting flyer");
+  });
+}
+``
 // ADMIN
 function loadPending(){
   db.collection("pending").onSnapshot(s=>{
@@ -315,7 +332,15 @@ function approve(id){
     });
   });
 }
+// LARGE PICS
+  function openFlyer(url){
+  modal.style.display = "block";
 
+  modalDate.innerText = "Flyer";
+  modalContent.innerHTML = `
+    <img src="${url}" style="width:100%">
+  `;
+}
 // LOAD EVENTS & FLYERS
 function loadEvents(){
   db.collection("events").onSnapshot(s=>{
@@ -327,9 +352,9 @@ function loadEvents(){
       events.push(e);
 
       if(e.flyer){
-  flyerContainer.innerHTML+=`
+  flyerContainer.innerHTML += `
     <div class="flyer">
-      <img src="${e.flyer}" alt="Flyer">
+      <img src="${e.flyer}" onclick="openFlyer('${e.flyer}')">
     </div>`;
 }
     });
