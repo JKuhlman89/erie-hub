@@ -150,7 +150,9 @@ section { max-width:900px; margin:auto; padding:20px; }
 <!-- ADMIN -->
 <section id="admin" style="display:none;">
 <h2>Pending</h2>
+   <button onclick="logout()">Logout</button>
 <div id="pendingList"></div>
+ 
 </section>
 
 <!-- MODAL -->
@@ -200,9 +202,12 @@ function login(){
 
 auth.onAuthStateChanged(user=>{
   if(user){
-    admin.style.display="block";
-    loginSection.style.display="none";
+    admin.style.display = "block";
+    loginSection.style.display = "none";
     loadPending();
+  } else {
+    admin.style.display = "none";
+    loginSection.style.display = "block";
   }
 });
 
@@ -215,6 +220,14 @@ function prevMonth(){
 function nextMonth(){
   current.setMonth(current.getMonth()+1);
   renderCalendar();
+}
+//LOGOUT
+  
+function logout(){
+  auth.signOut().then(()=>{
+    admin.style.display = "none";
+    loginSection.style.display = "block";
+  });
 }
 
 // CALENDAR
@@ -391,7 +404,7 @@ function loadEvents(){
 
   const img=document.createElement("img");
   img.src=e.flyer;
-  img.onclick=()=>openFlyer(e.flyer, e.id);
+  img.onclick = () => openFlyer(e.flyer, e.id);
 
   box.appendChild(img);
 
@@ -422,17 +435,13 @@ function loadEvents(){
 
 
 function openFlyer(url, id){
-  modal.style.display="block";
-  modalDate.innerText="Flyer";
+  modal.style.display = "block";
+  modalDate.innerText = "Flyer";
 
   modalContent.innerHTML = `
     <div style="text-align:center;">
 
-      <img src="${url}" style="
-        max-width:100%;
-        height:auto;
-        border-radius:6px;
-      ">
+      <img src="${url}" style="max-width:100%; max-height:80vh;">
 
       ${auth.currentUser && id ? `
         <br><br>
