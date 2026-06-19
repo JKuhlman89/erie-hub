@@ -3,32 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Erie Events Hub</title>
+<title>Erie, PA Community Calendar</title>
 
 <style>
 body { font-family: Arial; margin:0; background:#f7fbff; }
-
-header {
-  background:#0b5ed7;
-  color:white;
-  padding:20px;
-  text-align:center;
-}
-
+header { background:#0b5ed7; color:white; padding:20px; text-align:center; }
 section { max-width:900px; margin:auto; padding:20px; }
 
 .calendar-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
+  display:flex; justify-content:space-between; align-items:center;
 }
 
-button { padding:5px 10px; cursor:pointer; }
-
 .weekdays, .days {
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
+  display:grid; grid-template-columns:repeat(7,1fr);
 }
 
 .weekdays { background:#e9f2ff; font-weight:bold; text-align:center; }
@@ -43,18 +30,14 @@ button { padding:5px 10px; cursor:pointer; }
 .event-day { background:#cfe2ff; }
 
 #modal {
-  display:none;
-  position:fixed;
-  top:0; left:0;
+  display:none; position:fixed; top:0; left:0;
   width:100%; height:100%;
   background:rgba(0,0,0,.5);
 }
 
 .modal-box {
-  background:white;
-  margin:10% auto;
-  padding:20px;
-  width:300px;
+  background:white; margin:10% auto;
+  padding:20px; width:300px;
 }
 
 .card { border:1px solid #ddd; margin:5px 0; padding:5px; }
@@ -71,14 +54,14 @@ button { padding:5px 10px; cursor:pointer; }
 <h2>Calendar</h2>
 
 <div class="calendar-header">
-  <button onclick="prevMonth()">←</button>
-  <h3 id="monthLabel"></h3>
-  <button onclick="nextMonth()">→</button>
+<button onclick="prevMonth()">←</button>
+<h3 id="monthLabel"></h3>
+<button onclick="nextMonth()">→</button>
 </div>
 
 <div class="weekdays">
-  <div>Sun</div><div>Mon</div><div>Tue</div>
-  <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+<div>Sun</div><div>Mon</div><div>Tue</div>
+<div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
 </div>
 
 <div class="days" id="calendarDays"></div>
@@ -86,14 +69,19 @@ button { padding:5px 10px; cursor:pointer; }
 
 <section>
 <h2>Submit Event</h2>
-<input id="title" placeholder="Title"><br><br>
+
+<input id="name" placeholder="Event Name"><br><br>
 <input id="date" type="date"><br><br>
+<input id="time" type="time"><br><br>
 <input id="location" placeholder="Location"><br><br>
-<textarea id="description"></textarea><br><br>
+<input id="host" placeholder="Host Name"><br><br>
+<input id="fee" placeholder="Entrance / Cover Fee"><br><br>
+<textarea id="details" placeholder="Event Details"></textarea><br><br>
+<input id="link" placeholder="Link to Event (Facebook, website, etc.)"><br><br>
+
 <button onclick="submitEvent()">Submit</button>
 </section>
 
-<!-- LOGIN -->
 <section id="loginSection">
 <h2>Admin Login</h2>
 <input id="username" placeholder="Email"><br><br>
@@ -101,22 +89,19 @@ button { padding:5px 10px; cursor:pointer; }
 <button onclick="login()">Login</button>
 </section>
 
-<!-- ADMIN -->
 <section id="admin" style="display:none;">
 <h2>Pending Approvals</h2>
 <div id="pendingList"></div>
 </section>
 
-<!-- MODAL -->
 <div id="modal">
-  <div class="modal-box">
-    <h3 id="modalDate"></h3>
-    <div id="modalContent"></div>
-    <button onclick="closeModal()">Close</button>
-  </div>
+<div class="modal-box">
+<h3 id="modalDate"></h3>
+<div id="modalContent"></div>
+<button onclick="closeModal()">Close</button>
+</div>
 </div>
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -125,153 +110,150 @@ button { padding:5px 10px; cursor:pointer; }
 
 // FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyAYsp0-0MJRuiupR4LQuuQLZkHNzHVIGE4",
+  apiKey: "YOUR_API_KEY",
   authDomain: "erie-hub.firebaseapp.com",
   projectId: "erie-hub"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ===== AUTH =====
-function login() {
+// LOGIN
+function login(){
   auth.signInWithEmailAndPassword(username.value, password.value)
     .then(() => alert("Logged in!"))
     .catch(err => alert(err.message));
 }
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    admin.style.display = "block";
-    loginSection.style.display = "none";
+auth.onAuthStateChanged(user=>{
+  if(user){
+    admin.style.display="block";
+    loginSection.style.display="none";
     loadPending();
   } else {
-    admin.style.display = "none";
-    loginSection.style.display = "block";
+    admin.style.display="none";
   }
 });
 
-// ===== CALENDAR =====
+// CALENDAR
 let current = new Date();
 let events = [];
 
 function prevMonth(){
-  current.setMonth(current.getMonth() - 1);
+  current.setMonth(current.getMonth()-1);
   renderCalendar();
 }
 
 function nextMonth(){
-  current.setMonth(current.getMonth() + 1);
+  current.setMonth(current.getMonth()+1);
   renderCalendar();
 }
 
 function renderCalendar(){
   const year = current.getFullYear();
   const month = current.getMonth();
+  monthLabel.innerText = current.toLocaleString("default",{month:"long",year:"numeric"});
+  calendarDays.innerHTML="";
 
-  monthLabel.innerText = current.toLocaleString("default",{month:"long", year:"numeric"});
-  calendarDays.innerHTML = "";
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-
-  for(let i=0;i<firstDay;i++){
-    calendarDays.appendChild(document.createElement("div"));
-  }
+  for(let i=0;i<firstDay;i++) calendarDays.appendChild(document.createElement("div"));
 
   for(let d=1; d<=daysInMonth; d++){
     const div = document.createElement("div");
     const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    const dayEvents = events.filter(e => e.date === dateStr);
+    const dayEvents = events.filter(e=>e.date===dateStr);
 
     div.innerHTML = `<b>${d}</b>`;
 
     if(dayEvents.length){
       div.classList.add("event-day");
-
       dayEvents.forEach(e=>{
         const el = document.createElement("div");
         el.style.fontSize="10px";
-        el.textContent = e.title;
+        el.textContent = e.name;
         div.appendChild(el);
       });
     }
 
-    div.onclick = () => openModal(dateStr);
+    div.onclick = ()=>openModal(dateStr);
     calendarDays.appendChild(div);
   }
 }
 
-// ===== MODAL =====
+// MODAL
 function openModal(date){
   modal.style.display="block";
   modalDate.innerText = date;
 
-  const dayEvents = events.filter(e => e.date === date);
+  const dayEvents = events.filter(e=>e.date===date);
 
   modalContent.innerHTML = dayEvents.length
-    ? dayEvents.map(e=>`<div class="card"><b>${e.title}</b><br>${e.location}</div>`).join("")
+    ? dayEvents.map(e=>`
+      <div class="card">
+        <b>${e.name}</b><br>
+        ${e.date} ${e.time || ""}<br><br>
+        <b>Location:</b> ${e.location || "N/A"}<br>
+        <b>Host:</b> ${e.host || "N/A"}<br>
+        <b>Fee:</b> ${e.fee || "Free"}<br><br>
+        ${e.details || ""}
+        ${e.link ? `<br><a href="${e.linko</a>` : ""}
+      </div>
+    `).join("")
     : "No events";
 }
 
-function closeModal(){
-  modal.style.display="none";
-}
+function closeModal(){ modal.style.display="none"; }
 
-// ===== SUBMIT =====
-function submitEvent() {
-  console.log("Submit clicked");
+// SUBMIT
+function submitEvent(){
+  const name = document.getElementById("name").value;
+  const date = document.getElementById("date").value;
+  const time = document.getElementById("time").value;
+  const location = document.getElementById("location").value;
+  const host = document.getElementById("host").value;
+  const fee = document.getElementById("fee").value;
+  const details = document.getElementById("details").value;
+  const link = document.getElementById("link").value;
 
-  const titleInput = document.getElementById("title");
-  const dateInput = document.getElementById("date");
-  const locationInput = document.getElementById("location");
-  const descriptionInput = document.getElementById("description");
-
-  if (!titleInput.value || !dateInput.value) {
-    alert("Please fill in Title and Date");
+  if(!name || !date){
+    alert("Event Name and Date required");
     return;
   }
 
   db.collection("pending").add({
-    title: titleInput.value,
-    date: dateInput.value,
-    location: locationInput.value || "",  // ✅ SAFE
-    description: descriptionInput.value || "",
+    name, date, time, location,
+    host, fee, details, link,
     created: new Date()
-  })
-  .then(() => {
-    console.log("SUCCESS");
-    alert("Submitted for approval!");
-
-    // clear form
-    titleInput.value = "";
-    dateInput.value = "";
-    locationInput.value = "";
-    descriptionInput.value = "";
-  })
-  .catch((error) => {
-    console.error("ERROR:", error);
-    alert("Submission failed");
+  }).then(()=>{
+    alert("Submitted!");
+  }).catch(err=>{
+    console.error(err);
+    alert("Error");
   });
 }
 
-// ===== LOAD PENDING =====
-function loadPending() {
-  db.collection("pending").onSnapshot(snapshot => {
-    pendingList.innerHTML = "";
+// ADMIN
+function loadPending(){
+  db.collection("pending").onSnapshot(snapshot=>{
+    pendingList.innerHTML="";
 
-    snapshot.forEach(doc => {
+    snapshot.forEach(doc=>{
       const e = doc.data();
 
       pendingList.innerHTML += `
         <div class="card">
-          <b>${e.title}</b><br>
-          Date: ${e.date}<br>
-          Location: ${e.location}<br>
-          Description: ${e.description}<br>
+          <b>${e.name}</b><br>
+          ${e.date}<br>
+          ${e.time || ""}<br>
+          ${e.location || ""}<br>
+          ${e.host || ""}<br>
+          Fee: ${e.fee || "Free"}<br>
+          ${e.details || ""}<br>
+          <a href="${e.link || ""}</a><br>
           <button onclick="approve('${doc.id}')">Approve</button>
         </div>
       `;
@@ -279,33 +261,24 @@ function loadPending() {
   });
 }
 
-// ===== APPROVE =====
-function approve(id) {
-  const ref = db.collection("pending").doc(id);
-
-  ref.get().then(doc => {
+function approve(id){
+  db.collection("pending").doc(id).get().then(doc=>{
     const data = doc.data();
-
-    db.collection("events").add(data).then(() => {
-      ref.delete();
+    db.collection("events").add(data).then(()=>{
+      db.collection("pending").doc(id).delete();
     });
   });
 }
 
-// ===== LOAD EVENTS =====
-function loadEvents() {
-  db.collection("events").onSnapshot(snapshot => {
-    events = [];
-
-    snapshot.forEach(doc => {
-      events.push(doc.data());
-    });
-
+// LOAD EVENTS
+function loadEvents(){
+  db.collection("events").onSnapshot(snapshot=>{
+    events=[];
+    snapshot.forEach(doc=>events.push(doc.data()));
     renderCalendar();
   });
 }
 
-// INIT
 loadEvents();
 
 </script>
