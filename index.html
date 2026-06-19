@@ -104,7 +104,7 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 <!-- FLYERS -->
 <section>
-<h2>Event Flyers</h2>
+<h2>Flyers</h2>
 <div id="flyerContainer" class="flyer-container"></div>
 </section>
 
@@ -126,7 +126,14 @@ section { max-width:900px; margin:auto; padding:20px; }
 <button onclick="submitEvent()">Submit</button>
 </section>
 
-<!-- ADMIN LOGIN -->
+<!-- SEPARATE FLYER -->
+<section>
+<h2>Submit Flyer Only</h2>
+<input id="flyerOnly" placeholder="Flyer Image URL"><br><br>
+<button onclick="submitFlyer()">Submit Flyer</button>
+</section>
+
+<!-- LOGIN -->
 <section id="loginSection">
 <h2>Admin Login</h2>
 <input id="username" placeholder="Email"><br><br>
@@ -136,7 +143,7 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 <!-- ADMIN -->
 <section id="admin" style="display:none;">
-<h2>Pending Approvals</h2>
+<h2>Pending</h2>
 <div id="pendingList"></div>
 </section>
 
@@ -167,7 +174,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// AUTH
+let current = new Date();
+let events = [];
+
+// LOGIN
 function login(){
   auth.signInWithEmailAndPassword(username.value,password.value)
     .then(()=>loadPending())
@@ -182,10 +192,7 @@ auth.onAuthStateChanged(user=>{
   }
 });
 
-// CALENDAR
-let current = new Date();
-let events = [];
-
+// NAV
 function prevMonth(){
   current.setMonth(current.getMonth()-1);
   renderCalendar();
@@ -196,20 +203,17 @@ function nextMonth(){
   renderCalendar();
 }
 
+// CALENDAR
 function renderCalendar(){
 
-  const year = current.getFullYear();
-  const month = current.getMonth();
+  const year=current.getFullYear();
+  const month=current.getMonth();
 
-  monthLabel.innerText = current.toLocaleString("default", {
-    month:"long",
-    year:"numeric"
-  });
+  monthLabel.innerText = current.toLocaleString("default",{month:"long",year:"numeric"});
+  calendarDays.innerHTML="";
 
-  calendarDays.innerHTML = "";
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
 
   for(let i=0;i<firstDay;i++){
     calendarDays.appendChild(document.createElement("div"));
@@ -217,24 +221,22 @@ function renderCalendar(){
 
   for(let d=1; d<=daysInMonth; d++){
 
-    const div = document.createElement("div");
-    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const div=document.createElement("div");
+    const dateStr=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    const dayEvents = events.filter(e=>e.date===dateStr);
+    const dayEvents=events.filter(e=>e.date===dateStr);
 
-    div.innerHTML = `<b>${d}</b>`;
+    div.innerHTML=`<b>${d}</b>`;
 
     if(dayEvents.length){
       div.classList.add("event-day");
 
-      const maxShow = 2;
-
-      dayEvents.slice(0,maxShow).forEach(e=>{
-        div.innerHTML += `<div>${e.name || "Untitled"}</div>`;
+      dayEvents.slice(0,2).forEach(e=>{
+        div.innerHTML+=`<div>${e.name}</div>`;
       });
 
-      if(dayEvents.length > maxShow){
-        div.innerHTML += `<div style="color:gray">+${dayEvents.length-maxShow} more</div>`;
+      if(dayEvents.length>2){
+        div.innerHTML+=`<div style="color:gray">+${dayEvents.length-2} more</div>`;
       }
     }
 
@@ -243,43 +245,43 @@ function renderCalendar(){
   }
 }
 
-// MODAL ✅ FIXED
+// MODAL
 function openModal(date){
   modal.style.display="block";
-  modalDate.innerText = date;
+  modalDate.innerText=date;
 
-  const dayEvents = events.filter(e=>e.date===date);
+  const dayEvents=events.filter(e=>e.date===date);
 
-  modalContent.innerHTML = dayEvents.length
-    ? dayEvents.map(e=>`
+  let html="";
+
+  dayEvents.forEach(e=>{
+    html+=`
       <div class="card">
-        <b>${e.name || "Untitled"}</b><br>
+        <b>${e.name}</b><br>
         ${e.time||""}<br>
         ${e.location||""}<br>
         ${e.details||""}<br>
+    `;
 
-        ${e.link ? `<a hrefk}More Info</a>` : ""}
+    if(e.link){
+      html+=`<a href="${e.link}" targetauth.currentUser && e.id){
+      html+=`<br><button onclick="deleteEvent('${e.id}')">Delete</button>`;
+    }
 
-        ${(auth.currentUser && e.id)
-          ? `<br><button onclick="deleteEvent('${e.id}')">Delete</button>`
-          : ""}
-      </div>
-    `).join("")
-    : "No events";
-} // ✅ THIS WAS MISSING
+    html+=`</div>`;
+  });
+
+  modalContent.innerHTML = html || "No events";
+}
 
 function closeModal(){
   modal.style.display="none";
 }
 
-// SUBMIT
+// SUBMIT EVENT
 function submitEvent(){
-
-  const nameInput = document.getElementById("name");
-  const dateInput = document.getElementById("date");
-
-  if(!nameInput.value || !dateInput.value){
-    alert("Name and date required");
+  if(!name.value || !date.value){
+    alert("Name + date required");
     return;
   }
 
@@ -294,9 +296,20 @@ function submitEvent(){
     link:link.value,
     flyer:flyer.value,
     created:new Date()
-  })
-  .then(()=>alert("Submitted"))
-  .catch(err=>console.error(err));
+  }).then(()=>alert("Submitted"));
+}
+
+// SUBMIT FLYER ONLY
+function submitFlyer(){
+  if(!flyerOnly.value){
+    alert("Enter flyer URL");
+    return;
+  }
+
+  db.collection("flyers").add({
+    flyer:flyerOnly.value,
+    created:new Date()
+  }).then(()=>alert("Flyer submitted"));
 }
 
 // ADMIN
@@ -305,7 +318,7 @@ function loadPending(){
     pendingList.innerHTML="";
 
     s.forEach(doc=>{
-      const e = doc.data();
+      const e=doc.data();
 
       pendingList.innerHTML+=`
         <div class="card">
@@ -336,34 +349,29 @@ function deleteEvent(id){
 }
 
 // FLYERS
-function openFlyer(url){
-  modal.style.display="block";
-  modalDate.innerText="Flyer";
-  modalContent.innerHTML = `<img src="${url}" style="S ✅ CLEANED
 function loadEvents(){
-  db.collection("events").onSnapshot(snapshot => {
+  db.collection("events").onSnapshot(s=>{
+    events=[];
+    flyerContainer.innerHTML="";
 
-    events = [];
-    flyerContainer.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    s.forEach(doc=>{
+      const e=doc.data();
 
       events.push({
-        id: doc.id,
-        ...data
+        id:doc.id,
+        ...e
       });
 
-      if(data.flyer){
-        const flyerDiv = document.createElement("div");
-        flyerDiv.className = "flyer";
+      if(e.flyer){
+        const img=document.createElement("img");
+        img.src=e.flyer;
+        img.onclick=()=>openFlyer(e.flyer);
 
-        const img = document.createElement("img");
-        img.src = data.flyer;
-        img.onclick = () => openFlyer(data.flyer);
+        const box=document.createElement("div");
+        box.className="flyer";
+        box.appendChild(img);
 
-        flyerDiv.appendChild(img);
-        flyerContainer.appendChild(flyerDiv);
+        flyerContainer.appendChild(box);
       }
     });
 
@@ -371,7 +379,10 @@ function loadEvents(){
   });
 }
 
-// INIT
+function openFlyer(url){
+  modal.style.display="block";
+  modalDate.innerText="Flyer";
+  modalContent.innerHTML=`<img src="${url}" T
 loadEvents();
 renderCalendar();
 
