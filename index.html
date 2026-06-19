@@ -251,22 +251,23 @@ function openModal(date){
   const dayEvents = events.filter(e=>e.date===date);
 
   modalContent.innerHTML = dayEvents.length
-    ? dayEvents.map(e=>`
-      <div class="card">
-        <b>${e.name}</b><br>
-        ${e.time||""}<br>
-        ${e.location||""}<br>
-        ${e.details||""}<br>
+  ? dayEvents.map(e => `
+    <div class="card">
+      <b>${e.name || "Untitled"}</b><br>
+      ${e.time || ""}<br>
+      ${e.location || ""}<br>
+      ${e.details || ""}<br>
 
-        ${e.link ? `<a href="${e.link}" target=
+      ${e.link 
+        ? `${e.link}More Info</a>` 
+        : ""}
 
-        ${auth.currentUser && e.id ? `
-          <br><button onclick="deleteEvent('${e.id}')">Delete</button>
-        `:""}
-      </div>
-    `).join("")
-    : "No events";
-}
+      ${(auth.currentUser && e.id)
+        ? `<br><button onclick="deleteEvent('${e.id}')">Delete</button>`
+        : ""}
+    </div>
+  `).join("")
+  : "No events";
 
 function closeModal(){
   modal.style.display="none";
