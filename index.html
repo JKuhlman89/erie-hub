@@ -21,8 +21,11 @@ section { max-width:900px; margin:auto; padding:20px; }
   grid-template-columns:repeat(7,1fr);
 }
 
-.weekdays { background:#e9f2ff; font-weight:bold; text-align:center; }
-
+.weekdays {
+  background:#e9f2ff;
+  font-weight:bold;
+  text-align:center;
+}
 
 .days div {
   border:1px solid #eee;
@@ -31,7 +34,6 @@ section { max-width:900px; margin:auto; padding:20px; }
   font-size:11px;
   overflow:hidden;
 }
-
 
 .event-day { background:#cfe2ff; }
 
@@ -46,6 +48,7 @@ section { max-width:900px; margin:auto; padding:20px; }
   height:250px;
   border-radius:8px;
   overflow:hidden;
+  cursor:pointer;
 }
 
 .flyer img {
@@ -69,8 +72,11 @@ section { max-width:900px; margin:auto; padding:20px; }
   width:300px;
 }
 
-.card { border:1px solid #ddd; padding:5px; margin:5px 0; }
-
+.card {
+  border:1px solid #ddd;
+  padding:5px;
+  margin:5px 0;
+}
 </style>
 </head>
 
@@ -78,8 +84,10 @@ section { max-width:900px; margin:auto; padding:20px; }
 
 <header><h1>Erie Events Hub</h1></header>
 
+<!-- CALENDAR -->
 <section>
 <h2>Calendar</h2>
+
 <div class="calendar-header">
 <button onclick="prevMonth()">←</button>
 <h3 id="monthLabel"></h3>
@@ -100,7 +108,7 @@ section { max-width:900px; margin:auto; padding:20px; }
 <div id="flyerContainer" class="flyer-container"></div>
 </section>
 
-<!-- SUBMIT -->
+<!-- SUBMIT EVENT -->
 <section>
 <h2>Submit Event</h2>
 
@@ -109,24 +117,16 @@ section { max-width:900px; margin:auto; padding:20px; }
 <input id="time" type="time"><br><br>
 <input id="location" placeholder="Location"><br><br>
 <input id="host" placeholder="Host Name"><br><br>
-<input id="fee" placeholder="Entrance / Cover Fee"><br><br>
+<input id="fee" placeholder="Fee"><br><br>
 
-<textarea id="details" placeholder="Event Details"></textarea><br><br>
-
-<input id="link" placeholder="Link to Event"><br><br>
-
-<input id="flyer" placeholder="Flyer Image URL (optional)"><br><br>
+<textarea id="details" placeholder="Details"></textarea><br><br>
+<input id="link" placeholder="External Link"><br><br>
+<input id="flyer" placeholder="Flyer Image URL"><br><br>
 
 <button onclick="submitEvent()">Submit</button>
 </section>
 
-<section>
-<h2>Submit Flyer</h2>
-<input id="flyerOnly" placeholder="Flyer Image URL"><br><br>
-<button onclick="submitFlyer()">Submit Flyer</button>
-</section>
-
-<!-- LOGIN -->
+<!-- ADMIN LOGIN -->
 <section id="loginSection">
 <h2>Admin Login</h2>
 <input id="username" placeholder="Email"><br><br>
@@ -159,8 +159,7 @@ section { max-width:900px; margin:auto; padding:20px; }
 const firebaseConfig = {
   apiKey: "AIzaSyAYsp0-0MJRuiupR4LQuuQLZkHNzHVIGE4",
   authDomain: "erie-hub.firebaseapp.com",
-  projectId: "erie-hub",
-  storageBucket: "erie-hub.appspot.com"
+  projectId: "erie-hub"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -168,7 +167,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// LOGIN
+// AUTH
 function login(){
   auth.signInWithEmailAndPassword(username.value,password.value)
     .then(()=>loadPending())
@@ -184,24 +183,60 @@ auth.onAuthStateChanged(user=>{
 });
 
 // CALENDAR
-let current=new Date();
-let events=[];
+let current = new Date();
+let events = [];
 
-function prevMonth(){ current.setMonth(current.getMonth()-1); renderCalendar();}
-function nextMonth(){ current.setMonth(current.getMonth()+1); renderCalendar();}
-
-function renderCalendar(){
-  
-const maxShow = 2;
-
-dayEvents.slice(0, maxShow).forEach(e => {
-  div.innerHTML += `<div style="font-size:10px">${e.name}</div>`;
-});
-
-if (dayEvents.length > maxShow) {
-  div.innerHTML += `<div style="font-size:10px; color:gray;">+${dayEvents.length - maxShow} more</div>`;
+function prevMonth(){
+  current.setMonth(current.getMonth()-1);
+  renderCalendar();
 }
 
+function nextMonth(){
+  current.setMonth(current.getMonth()+1);
+  renderCalendar();
+}
+
+function renderCalendar(){
+
+  const year = current.getFullYear();
+  const month = current.getMonth();
+
+  monthLabel.innerText = current.toLocaleString("default", {
+    month:"long",
+    year:"numeric"
+  });
+
+  calendarDays.innerHTML = "";
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    calendarDays.appendChild(document.createElement("div"));
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+
+    const div = document.createElement("div");
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    const dayEvents = events.filter(e=>e.date===dateStr);
+
+    div.innerHTML = `<b>${d}</b>`;
+
+    if(dayEvents.length){
+      div.classList.add("event-day");
+
+      const maxShow = 2;
+
+      dayEvents.slice(0,maxShow).forEach(e=>{
+        div.innerHTML += `<div>${e.name || "Untitled"}</div>`;
+      });
+
+      if(dayEvents.length > maxShow){
+        div.innerHTML += `<div style="color:gray">+${dayEvents.length-maxShow} more</div>`;
+      }
+    }
 
     div.onclick=()=>openModal(dateStr);
     calendarDays.appendChild(div);
@@ -211,112 +246,73 @@ if (dayEvents.length > maxShow) {
 // MODAL
 function openModal(date){
   modal.style.display="block";
-  modalDate.innerText=date;
+  modalDate.innerText = date;
 
-  const dayEvents=events.filter(e=>e.date===date);
+  const dayEvents = events.filter(e=>e.date===date);
 
-  modalContent.innerHTML=dayEvents.length
-   ? dayEvents.map(e=>`
-     <div class="card">
-      <b>${e.name}</b><br>
-      ${e.time||""}<br>
-      ${e.location||""}<br>
-      ${e.details||""}<br>
-      ${e.link ? `<a href="${e.link}" target="_blank">More Info</a>` : ""}
-     </div>
-   `).join("")
-   : "No events";
+  modalContent.innerHTML = dayEvents.length
+    ? dayEvents.map(e=>`
+      <div class="card">
+        <b>${e.name}</b><br>
+        ${e.time||""}<br>
+        ${e.location||""}<br>
+        ${e.details||""}<br>
+
+        ${e.link ? `<a href="${e.link}" target=
+
+        ${auth.currentUser && e.id ? `
+          <br><button onclick="deleteEvent('${e.id}')">Delete</button>
+        `:""}
+      </div>
+    `).join("")
+    : "No events";
 }
 
-function closeModal(){ modal.style.display="none"; }
+function closeModal(){
+  modal.style.display="none";
+}
 
 // SUBMIT
 function submitEvent(){
 
   const nameInput = document.getElementById("name");
   const dateInput = document.getElementById("date");
-  const timeInput = document.getElementById("time");
-  const locationInput = document.getElementById("location");
-  const hostInput = document.getElementById("host");
-  const feeInput = document.getElementById("fee");
-  const detailsInput = document.getElementById("details");
-  const linkInput = document.getElementById("link");
-  const flyerInput = document.getElementById("flyer");
 
-  if (!nameInput.value || !dateInput.value) {
-    alert("Event Name and Date required");
+  if(!nameInput.value || !dateInput.value){
+    alert("Name and date required");
     return;
   }
 
   db.collection("pending").add({
-    name: nameInput.value,
-    date: dateInput.value,
-    time: timeInput.value || "",
-    location: locationInput.value || "",
-    host: hostInput.value || "",
-    fee: feeInput.value || "",
-    details: detailsInput.value || "",
-    link: linkInput.value || "",
-    flyer: flyerInput.value || "",
-    created: new Date()
+    name:name.value,
+    date:date.value,
+    time:time.value,
+    location:location.value,
+    host:host.value,
+    fee:fee.value,
+    details:details.value,
+    link:link.value,
+    flyer:flyer.value,
+    created:new Date()
   })
-  .then(()=> {
-    alert("Submitted");
-
-    // Clear form
-    nameInput.value = "";
-    dateInput.value = "";
-    timeInput.value = "";
-    locationInput.value = "";
-    hostInput.value = "";
-    feeInput.value = "";
-    detailsInput.value = "";
-    linkInput.value = "";
-    flyerInput.value = "";
-  })
-  .catch(err=>{
-    console.error("Submit error:", err);
-    alert("Submission failed — check console");
-  });
-
+  .then(()=>alert("Submitted"))
+  .catch(err=>console.error(err));
 }
-//FLYER SUBMIT
-  function submitFlyer(){
-  const flyerInput = document.getElementById("flyerOnly");
 
-  if (!flyerInput.value) {
-    alert("Please enter a flyer image URL");
-    return;
-  }
-
-  db.collection("flyers").add({
-    image: flyerInput.value,
-    created: new Date()
-  })
-  .then(() => {
-    alert("Flyer submitted for approval");
-    flyerInput.value = "";
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Error submitting flyer");
-  });
-}
-``
 // ADMIN
 function loadPending(){
   db.collection("pending").onSnapshot(s=>{
     pendingList.innerHTML="";
 
     s.forEach(doc=>{
-      const e=doc.data();
+      const e = doc.data();
 
       pendingList.innerHTML+=`
         <div class="card">
           <b>${e.name}</b><br>
           ${e.date}<br>
-          ${e.location||""}<br>
           <button onclick="approve('${doc.id}')">Approve</button>
+          <button onclick="deletePending('${doc.id}')">Delete</button>
         </div>
       `;
     });
@@ -332,31 +328,39 @@ function approve(id){
     });
   });
 }
-// LARGE PICS
-  function openFlyer(url){
-  modal.style.display = "block";
 
-  modalDate.innerText = "Flyer";
-  modalContent.innerHTML = `
-    <img src="${url}" style="width:100%">
-  `;
+function deletePending(id){
+  db.collection("pending").doc(id).delete();
 }
-// LOAD EVENTS & FLYERS
-function loadEvents(){
+
+// DELETE EVENT
+function deleteEvent(id){
+  db.collection("events").doc(id).delete();
+}
+
+// FLYERS
+function openFlyer(url){
+  modal.style.display="block";
+  modalDate.innerText="Flyer";
+  modalContent.innerHTML = `<img src="${url}" style="width:on loadEvents(){
   db.collection("events").onSnapshot(s=>{
     events=[];
     flyerContainer.innerHTML="";
 
     s.forEach(doc=>{
-      const e=doc.data();
-      events.push(e);
+      const e = doc.data();
+
+      events.push({
+        id: doc.id,
+        ...e
+      });
 
       if(e.flyer){
-  flyerContainer.innerHTML += `
-    <div class="flyer">
-      <img src="${e.flyer}" onclick="openFlyer('${e.flyer}')">
-    </div>`;
-}
+        flyerContainer.innerHTML+=`
+          <div class="flyer" onclick="openFlyer('${e.flyer}')">
+            <img src="$          </div>
+        `;
+      }
     });
 
     renderCalendar();
@@ -364,9 +368,9 @@ function loadEvents(){
 }
 
 loadEvents();
+renderCalendar();
 
 </script>
 
 </body>
 </html>
-`
