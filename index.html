@@ -238,22 +238,50 @@ function closeModal(){ modal.style.display="none"; }
 // SUBMIT
 function submitEvent(){
 
+  const nameInput = document.getElementById("name");
+  const dateInput = document.getElementById("date");
+  const timeInput = document.getElementById("time");
+  const locationInput = document.getElementById("location");
+  const hostInput = document.getElementById("host");
+  const feeInput = document.getElementById("fee");
+  const detailsInput = document.getElementById("details");
+  const linkInput = document.getElementById("link");
+  const flyerInput = document.getElementById("flyer");
+
+  if (!nameInput.value || !dateInput.value) {
+    alert("Event Name and Date required");
+    return;
+  }
+
   db.collection("pending").add({
-    name: name.value,
-    date: date.value,
-    time: time.value,
-    location: location.value,
-    host: host.value,
-    fee: fee.value,
-    details: details.value,
-    link: link.value,
-    flyer: flyer.value || "",
+    name: nameInput.value,
+    date: dateInput.value,
+    time: timeInput.value || "",
+    location: locationInput.value || "",
+    host: hostInput.value || "",
+    fee: feeInput.value || "",
+    details: detailsInput.value || "",
+    link: linkInput.value || "",
+    flyer: flyerInput.value || "",
     created: new Date()
   })
-  .then(()=>alert("Submitted"))
+  .then(()=> {
+    alert("Submitted");
+
+    // Clear form
+    nameInput.value = "";
+    dateInput.value = "";
+    timeInput.value = "";
+    locationInput.value = "";
+    hostInput.value = "";
+    feeInput.value = "";
+    detailsInput.value = "";
+    linkInput.value = "";
+    flyerInput.value = "";
+  })
   .catch(err=>{
-    console.error(err);
-    alert("Error submitting event");
+    console.error("Submit error:", err);
+    alert("Submission failed — check console");
   });
 
 }
